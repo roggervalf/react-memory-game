@@ -1,9 +1,9 @@
-import { memoryMachine } from "./machine";
-import { inspect } from "@xstate/inspect";
 import { useEffect, useState } from "react";
-import { useMachine } from "@xstate/react";
-import SingleCard from "./components/SingleCard";
 import "./App.css";
+import SingleCard from "./components/SingleCard";
+import { useMachine } from "@xstate/react";
+import { inspect } from "@xstate/inspect";
+import { memoryMachine } from "./machine";
 
 inspect({ iframe: false });
 
@@ -19,6 +19,9 @@ const cardImages = [
 
 const App = () => {
   const [current, send] = useMachine(memoryMachine, { devTools: true });
+  // const { turnCounter, sourceCard, choiceOne, choiceTwo, card, disableBoard } =
+  //   current.context;
+
   const [cards, setCards] = useState([]);
   const [turns, setTurns] = useState(0);
   const [choiceOne, setChoiceOne] = useState(null);
@@ -39,7 +42,13 @@ const App = () => {
 
   // handle a user choice, update choice one or two
   const handleChoice = (card) => {
-    choiceOne ? setChoiceTwo(card) : setChoiceOne(card); // if choiceOne is null (is false), update with setChoiceOne, else update choiceTwo with setChoiceTwo
+    if (choiceOne) {
+      send({ type: "ONCLICK", value: card });
+      setChoiceTwo(card);
+    }
+    setChoiceOne(card);
+    send({ type: "ONCLICK", value: card });
+    // if choiceOne is null (is false), update with setChoiceOne, else update choiceTwo with setChoiceTwo
   };
 
   // reset game automagically
