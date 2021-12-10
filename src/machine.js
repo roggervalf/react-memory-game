@@ -1,4 +1,4 @@
-import { createMachine, assign } from 'xstate';
+import { createMachine, assign } from "xstate";
 
 // array of card images
 const cardImages = [
@@ -7,7 +7,7 @@ const cardImages = [
   "/img/ring-1.png",
   "/img/scroll-1.png",
   "/img/shield-1.png",
-  "/img/sword-1.png"
+  "/img/sword-1.png",
 ];
 
 const shuffleCards = () => {
@@ -15,7 +15,7 @@ const shuffleCards = () => {
     .sort(() => Math.random() - 0.5) // shuffled array
     .map((card, index) => ({ src: card, id: index, matched: false }));
   return cards;
-}
+};
 
 const isValidMove = (ctx, event) => {
   return ctx.cards[event.id].matched === false;
@@ -23,7 +23,6 @@ const isValidMove = (ctx, event) => {
 
 const matches = (ctx, event) => {
   if (ctx.choiceOne !== null && ctx.choiceTwo !== null) {
-    console.log(ctx.cards[ctx.choiceOne].src === ctx.cards[ctx.choiceTwo].src);
     return ctx.cards[ctx.choiceOne].src === ctx.cards[ctx.choiceTwo].src;
   }
 };
@@ -32,63 +31,59 @@ const flippedAllCards = (ctx, event) => {
   return ctx.cards.every((card) => card.matched);
 };
 
-const memoryMachine = createMachine({
-  id: 'memoryGame',
-  initial: 'onGame',
-  context: {
-    turnCounter: 0,
-    cards: shuffleCards()
+const memoryMachine = createMachine(
+  {
+    id: "memoryGame",
+    initial: "onGame",
+    context: {
+      turnCounter: 0,
+      cards: shuffleCards(),
+    },
+    on: {
+      newGame: {
+        actions: ["newGame"],
+        target: "onGame",
+      },
+    },
+    states: {
+      onGame: {
+        on: {
+          "": [{ target: "finished", cond: "flippedAllCards" }],
+          ON_CLICK: [
+            {
+              cond: "isValidMove",
+              actions: "setChoiceOne",
+              target: "flip",
+            },
+          ],
+        },
+      },
+      finished: {},
+      flip: {
+        on: {
+          ON_CLICK: [
+            {
+              cond: "isValidMove",
+              actions: ["setChoiceTwo", "incrementCounter"],
+              target: "matching",
+            },
+          ],
+        },
+      },
+      matching: {
+        after: {
+          50: { target: "onGame", cond: "matches" },
+          1000: { target: "onGame" },
+        },
+        exit: ["updateChoices"],
+      },
+    },
   },
-  on: {
-    newGame: {
-      actions: ['newGame'],
-      target: 'onGame'
-    }
-  },
-  states: {
-    onGame: {
-      on: {
-        "": [
-          { target: 'onFinish', cond: 'flippedAllCards' },
-        ],
-        ON_CLICK: [
-          {
-            cond: 'isValidMove',
-            actions: 'setChoiceOne',
-            target: 'flip'
-          }
-        ]
-      },
-    },
-    onFinish: {
-    },
-    flip: {
-      on: {
-        ON_CLICK: [
-          {
-            cond: 'isValidMove',
-            actions: 'setChoiceTwo',
-            target: 'matching'
-          }
-        ]
-      },
-    },
-    matching: {
-      after: {
-        50: { target: 'onGame', cond: 'matches' },
-        1000: { target: 'onGame' }
-      },
-      exit: [
-        'updateChoices'
-      ]
-    }
-  }
-},
   {
     guards: {
       isValidMove,
       matches,
-      flippedAllCards
+      flippedAllCards,
     },
     actions: {
       updateChoices: assign({
@@ -102,7 +97,10 @@ const memoryMachine = createMachine({
           return updatedCards;
         },
         choiceOne: (ctx, event) => null,
-        choiceTwo: (ctx, event) => null
+        choiceTwo: (ctx, event) => null,
+      }),
+      incrementCounter: assign({
+        turnCounter: (ctx, event) => ctx.turnCounter + 1,
       }),
       setChoiceOne: assign({
         choiceOne: (ctx, event) => event.id,
@@ -111,12 +109,13 @@ const memoryMachine = createMachine({
         choiceTwo: (ctx, event) => event.id,
       }),
       newGame: assign({
-        turnCounter: () => null,
+        turnCounter: () => 0,
         cards: shuffleCards,
         choiceOne: () => null,
         choiceTwo: () => null,
-      })
-    }
-  });
+      }),
+    },
+  }
+);
 
 export { memoryMachine };
